@@ -1,0 +1,24 @@
+[project]
+name = "moni-pod"
+version = "0.1.0"
+description = "Claude Code plugin that makes the user explicitly start and stop RunPod GPU pods, and locks every other path."
+readme = "docs/PLAN.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []
+
+[project.scripts]
+moni-pod = "moni_pod.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/moni_pod"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,17 @@
+# secrets — RunPod API key lives here, never commit
+.env
+.env.*
+!.env.example
+
+# local ledger / runtime
+.moni_pod/
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/

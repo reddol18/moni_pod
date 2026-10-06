@@ -1,0 +1,11 @@
+{
+  "name": "moni-pod",
+  "owner": { "name": "reddol18" },
+  "plugins": [
+    {
+      "name": "moni-pod",
+      "source": "./",
+      "description": "Make the user explicitly start and stop RunPod GPU pods (estimate, TTL auto-stop, ledger) and lock every other create/start/terminate path."
+    }
+  ]
+}
