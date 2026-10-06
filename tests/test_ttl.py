@@ -44,7 +44,9 @@ def test_bare_shell_becomes_keep_alive(argv):
 
 
 GIT_SH = (r"C:\Program Files\Git\usr\bin\sh.exe", r"C:\Program Files\Git\bin\sh.exe")
-SH = shutil.which("sh") or next((p for p in GIT_SH if os.path.exists(p)), None)
+# Git's usr/bin/sh first: bin/sh.exe is a launcher that puts Git's own dirs ahead of PATH, so the real curl
+# beat the fake one in CI and the test called the live RunPod API (401 with the dummy key).
+SH = next((p for p in GIT_SH if os.path.exists(p)), None) or shutil.which("sh")
 
 
 @pytest.mark.skipif(SH is None, reason="needs a POSIX sh")
