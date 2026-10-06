@@ -93,14 +93,17 @@ def test_watchdog_methods_restrict_path(tmp_path):
     env = dict(os.environ, RUNPOD_POD_ID="pod-fake", RUNPOD_API_KEY="k", **w["env"],
                MONI_POD_DEADLINE_FILE=(tmp_path / "deadline").as_posix(),
                PATH=os.pathsep.join([bindir.as_posix(), os.path.dirname(SH), os.environ["PATH"]]))
-    # no original command → `sleep infinity`; let it run past the TTL, then kill it
-    proc = subprocess.Popen([SH, "-c", w["entrypoint"][2], w["entrypoint"][3]], env=env,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    deadline = time.time() + 15
+    # Original command outlives the 1 s TTL but ends by itself: with no command the wrapper runs
+    # `sleep infinity`, which on Windows survives killing sh and was left running after every test run.
+    # Output goes to a file: a pipe stays open while any child holds it.
+    out_file = tmp_path / "out.txt"
+    with open(out_file, "w") as out:
+        subprocess.run([SH, "-c", w["entrypoint"][2], w["entrypoint"][3], "sleep", "4"], env=env,
+                       stdout=out, stderr=subprocess.STDOUT, timeout=30)
+    deadline = time.time() + 10
     while time.time() < deadline and not log.exists():
         time.sleep(0.2)
-    time.sleep(0.5)
-    proc.kill()
+    assert log.exists(), f"no stop call logged; sh={SH}\n{out_file.read_text()}"
     calls = log.read_text()
     assert calls.startswith("curl ") and "runpodctl" not in calls
     assert "-A moni-pod-ttl" in calls and "https://api.runpod.io/v2/pods/pod-fake/action" in calls
@@ -126,8 +129,9 @@ def test_deadline_file_extension_delays_stop(tmp_path):
     env = dict(os.environ, RUNPOD_POD_ID="pod-fake", RUNPOD_API_KEY="k", **w["env"], MONI_POD_DEADLINE_FILE=dl,
                PATH=os.pathsep.join([bindir.as_posix(), os.path.dirname(SH), os.environ["PATH"]]))
     t0 = time.time()
-    proc = subprocess.Popen([SH, "-c", w["entrypoint"][2], w["entrypoint"][3]], env=env,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    # a finite original command, not `sleep infinity` (see test_watchdog_methods_restrict_path)
+    proc = subprocess.Popen([SH, "-c", w["entrypoint"][2], w["entrypoint"][3], "sleep", "10"], env=env,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     while not os.path.exists(tmp_path / "deadline"):
         time.sleep(0.05)
     before = int((tmp_path / "deadline").read_text())
