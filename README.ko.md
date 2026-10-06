@@ -1,5 +1,11 @@
 # moni-pod
 
+[![CI](https://github.com/reddol18/moni_pod/actions/workflows/ci.yml/badge.svg)](https://github.com/reddol18/moni_pod/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+![Platforms](https://img.shields.io/badge/tested-Linux%20%7C%20Windows%20%7C%20macOS-informational.svg)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757.svg)](https://code.claude.com/docs/en/plugins)
+
 [English](README.md) | **한국어**
 
 AI 에이전트가 RunPod GPU 요금을 쌓지 못하게 하는 Claude Code 플러그인입니다.
