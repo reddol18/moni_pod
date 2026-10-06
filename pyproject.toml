@@ -2,7 +2,7 @@
 name = "moni-pod"
 version = "0.1.0"
 description = "Claude Code plugin that makes the user explicitly start and stop RunPod GPU pods, and locks every other path."
-readme = "docs/PLAN.md"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = []
