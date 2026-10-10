@@ -144,6 +144,42 @@ def test_cli_with_fake_client(monkeypatch, capsys):
     assert "spending more than these pods explain" in out  # 0.9 vs 0.44 expected
 
 
+SSH_DIRECT = {"proxy": None, "direct": {"host": "203.0.113.7", "port": 40123, "username": "root",
+                                        "command": "ssh root@203.0.113.7 -p 40123"}}
+
+
+def test_ssh_info_for_running_pod_in_json_and_text():
+    """Issue 1: an agent must get the pod's SSH address without reading the API key."""
+    pod = dict(live_pod("pod-test-1", name="my-pod"), ssh=SSH_DIRECT)
+    rep = status.build(NOW, {"pod-test-1": managed()}, [pod])
+    row = rep.to_dict()["rows"][0]
+    assert (row["ssh_host"], row["ssh_port"], row["ssh_user"]) == ("203.0.113.7", 40123, "root")
+    assert "ssh: ssh root@203.0.113.7 -p 40123" in status.render_text(rep)
+
+
+@pytest.mark.parametrize("pod", [
+    dict(live_pod("p"), ssh={"proxy": None, "direct": None}),   # still provisioning / no 22/tcp mapping yet
+    live_pod("p"),                                              # no ssh block at all
+    dict(live_pod("p", st="EXITED"), ssh=SSH_DIRECT),           # stopped: a stale address is not offered
+])
+def test_ssh_info_absent(pod):
+    rep = status.build(NOW, {}, [pod])
+    r = rep.rows[0]
+    assert r.ssh_host is None and r.ssh_port is None and r.ssh_user is None
+    assert "ssh:" not in status.render_text(rep)
+
+
+def test_ssh_info_offline_is_none():
+    rep = status.build(NOW, {"pod-test-1": managed()}, None)
+    assert rep.rows[0].ssh_host is None
+
+
+def test_extend_still_uses_shared_ssh_target():
+    from moni_pod import extend
+    assert extend.ssh_target({"ssh": SSH_DIRECT}) == ("203.0.113.7", 40123, "root")
+    assert extend.ssh_target({"ssh": {"direct": {"host": "h", "port": "22"}}}) == ("h", 22, "root")
+
+
 def test_expected_spend_includes_running_disk_and_stopped_disk():
     run = managed(running_disk_per_hr=0.007)
     stop = managed(pod_id="p2", status=EXITED, volume_gb=73, deadline=None,

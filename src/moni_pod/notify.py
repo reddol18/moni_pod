@@ -27,7 +27,13 @@ LOOKUP_CONTEXT = ("moni_pod is installed. For RunPod GPU stock, prices or which 
                   "'moni-pod:gpu-list' (read-only, no approval). Start/stop/extend pods only through the user's "
                   "/moni-pod:gpu-start, /moni-pod:gpu-stop, /moni-pod:gpu-extend. Never read or use the RunPod API key.")
 
-WINDOWS_POWERSHELL_AUMID = r"{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+def ssh_hint() -> str:
+    """Issue 1: without a supported way to get a pod's SSH address, an agent reads the key and calls the API."""
+    return ("For a running pod's SSH address (ssh_host/ssh_port/ssh_user), run "
+            f'`uv run --quiet --project "{config.PACKAGE_ROOT.as_posix()}" moni-pod status --json` (read-only).')
+
+
+WINDOWS_POWERSHELL_AUMID =r"{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
 
 
 @dataclass
@@ -77,14 +83,16 @@ def session_start(event: dict, now: datetime | None = None, settings: Settings |
     lines = summarize(Ledger(), now or utcnow(), settings or settings_mod.load())
     if not lines:
         # Task 0002: an agent that cannot find a lookup path reaches for runpodctl or the raw API with the key.
-        return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": LOOKUP_CONTEXT}}
+        return {"hookSpecificOutput": {"hookEventName": "SessionStart",
+                                       "additionalContext": LOOKUP_CONTEXT + " " + ssh_hint()}}
     msg = _message(lines)
     return {"systemMessage": msg + "\n  Live numbers: /moni-pod:gpu-status",
             "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext":
                                    msg + "\nTell the user about these pods if relevant. Never stop, delete or "
                                          "start pods yourself; point the user to /moni-pod:gpu-status, "
                                          "/moni-pod:gpu-stop or /moni-pod:gpu-extend. For GPU, price or "
-                                         "stock lookups use /moni-pod:gpu-list, never the API key."}}
+                                         "stock lookups use /moni-pod:gpu-list, never the API key. "
+                                         + ssh_hint()}}
 
 
 def desktop_notify(title: str, body: str, run=subprocess.run, timeout: float = 4.0) -> bool:

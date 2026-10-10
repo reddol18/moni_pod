@@ -34,6 +34,11 @@ class PodRow:
     est_usd: float | None  # ledger estimate (managed) or this-run estimate (unmanaged)
     budget_usd: float | None
     notes: list[str] = field(default_factory=list)
+    # Direct SSH (issue 1): set only while RunPod reports ssh.direct (running, 22/tcp mapped).
+    # Not secrets - login needs the user's own key, which moni_pod puts on the pod at start.
+    ssh_host: str | None = None
+    ssh_port: int | None = None
+    ssh_user: str | None = None
 
 
 @dataclass
@@ -66,6 +71,18 @@ class StatusReport:
             "stopped_disk_per_day": round(sum(r.stopped_disk_per_hr for r in self.stopped) * 24, 4),
             "est_usd": round(sum(r.est_usd or 0.0 for r in self.rows), 4),
         }
+
+
+def ssh_target(pod: dict | None) -> tuple[str, int, str] | None:
+    """(host, port, user) from the pod's `ssh.direct`; None while provisioning, stopped or without 22/tcp."""
+    direct = (((pod or {}).get("ssh") or {}).get("direct")) or {}
+    if direct.get("host") and direct.get("port"):
+        return direct["host"], int(direct["port"]), direct.get("username") or "root"
+    return None
+
+
+def ssh_command(host: str, port: int, user: str) -> str:
+    return f"ssh {user}@{host} -p {port}"
 
 
 def _hardware(pod: dict | None, rec: PodRecord | None) -> str:
@@ -150,6 +167,7 @@ def build(now: datetime, ledger_pods: dict[str, PodRecord], live_pods: list[dict
             else:
                 notes.append(f"stopped but still billing disk ({vol} GB, ${disk_rate * 24:.3f}/day)")
 
+        ssh = ssh_target(pod) if running else None
         rows.append(PodRow(
             pod_id=pod_id,
             name=(pod.get("name") if pod else rec.name) or "",
@@ -164,6 +182,9 @@ def build(now: datetime, ledger_pods: dict[str, PodRecord], live_pods: list[dict
             est_usd=None if est is None else round(est, 4),
             budget_usd=budget,
             notes=notes,
+            ssh_host=ssh[0] if ssh else None,
+            ssh_port=ssh[1] if ssh else None,
+            ssh_user=ssh[2] if ssh else None,
         ))
     rows.sort(key=lambda r: (not r.this_session, r.status not in LIVE_RUNNING, r.name))
     expected = 0.0
@@ -219,6 +240,8 @@ def render_text(rep: StatusReport) -> str:
         est = "-" if r.est_usd is None else f"{r.est_usd:.2f}"
         out.append(f"{mark:<2}{r.name[:20]:<20} {r.hardware[:28]:<28} {r.status:<9} {rate:>7} "
                    f"{_dur(r.elapsed_sec):>8} {_dur(r.ttl_left_sec):>8} {est:>8}")
+        if r.ssh_host:
+            out.append(f"{'':4}ssh: {ssh_command(r.ssh_host, r.ssh_port, r.ssh_user)}")
         for n in r.notes:
             out.append(f"{'':4}- {n}")
     out.append("")

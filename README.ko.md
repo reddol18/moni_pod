@@ -15,7 +15,7 @@ Pod의 시작과 종료는 사용자가 명령으로 직접 하고, 에이전트
 ```
 /moni-pod:gpu-list 24           # 24 GB 이상 GPU 재고, 시간당 요금, 잔액으로 쓸 수 있는 시간
 /moni-pod:gpu-start 4090 2h     # 견적 -> 사용자 확인 -> 2시간 뒤 자동 정지하는 Pod 시작
-/moni-pod:gpu-status            # 켜진/정지된 Pod, 남은 시간, 누적 요금, 정지 후에도 나가는 디스크 요금
+/moni-pod:gpu-status            # 켜진/정지된 Pod, 남은 시간, 누적 요금, 정지 후에도 나가는 디스크 요금, SSH 주소
 /moni-pod:gpu-extend pod-1 1h   # 자동 정지 시각 연장 (추가 비용 먼저 확인)
 /moni-pod:gpu-stop pod-1        # "결과 파일 회수했나?" -> 정지 또는 삭제 -> 최종 요금과 청구액 대조
 ```
@@ -103,8 +103,9 @@ Claude 프로젝트 폴더.
   스크립트 파일·SDK·다른 MCP 클라이언트·웹 콘솔 안의 호출은 보지 못합니다. 그래서 Pod 안의 TTL과 선불 잔액을
   최후 방어선으로 둡니다.
 - 잠금은 지출을 막을 뿐 키 읽기는 막지 않습니다. 사용자 계정으로 실행되는 에이전트는 `.env`를 읽을 수 있습니다.
-  대신 그럴 이유를 없앴습니다. `/moni-pod:gpu-list`가 키 없이 재고·가격 질문에 답하고, 세션 시작 때 Claude에게
-  그렇게 안내합니다. OS 수준의 키 격리는 구현하지 않았습니다([ADR-0006](docs/adr/0006-stock-lookup-and-key-access.md)).
+  대신 그럴 이유를 없앴습니다. `/moni-pod:gpu-list`가 키 없이 재고·가격 질문에 답하고, `moni-pod status --json`이
+  켜진 Pod의 SSH 호스트·포트·사용자를 알려 주며, 세션 시작 때 Claude에게 둘 다 안내합니다. OS 수준의 키 격리는
+  구현하지 않았습니다([ADR-0006](docs/adr/0006-stock-lookup-and-key-access.md), [ADR-0007](docs/adr/0007-ssh-info-in-status.md)).
 - 셸 리다이렉트로 `~/.moni_pod`에 쓰면 승인 토큰을 위조할 수 있습니다. 그래도 지출 호출마다 뜨는 권한 확인 창은
   막아 줍니다([ADR-0002](docs/adr/0002-lock-mechanism.md)).
 - Pod만 다룹니다. 서버리스 엔드포인트와 네트워크 볼륨은 잠그지도 추적하지도 않습니다.

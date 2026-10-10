@@ -15,7 +15,7 @@ or start a pod is locked; and each pod stops itself when the agreed time runs ou
 ```
 /moni-pod:gpu-list 24           # which 24 GB+ GPUs are in stock, $/h, hours your balance covers
 /moni-pod:gpu-start 4090 2h     # quote -> you confirm -> pod starts with a 2 h auto-stop
-/moni-pod:gpu-status            # running/stopped pods, TTL left, cost so far, disk still billing
+/moni-pod:gpu-status            # running/stopped pods, TTL left, cost so far, disk still billing, SSH address
 /moni-pod:gpu-extend pod-1 1h   # push back the auto-stop, extra cost confirmed first
 /moni-pod:gpu-stop pod-1        # "results copied off?" -> stop or delete -> final cost vs billing
 ```
@@ -108,8 +108,9 @@ These are the known gaps. Each one was found during development and is written u
   command. It cannot see calls hidden in a script file, an SDK, another MCP client, or the web console. The in-pod
   TTL and your prepaid balance are the backstops.
 - The lock blocks spending, not reading the key. An agent running as your OS user can read `.env`. moni-pod removes
-  the reason to: `/moni-pod:gpu-list` answers stock and price questions without the key, and Claude is told so at
-  session start. OS-level key isolation is not implemented ([ADR-0006](docs/adr/0006-stock-lookup-and-key-access.md)).
+  the reason to: `/moni-pod:gpu-list` answers stock and price questions without the key, `moni-pod status --json`
+  gives a running pod's SSH host, port and user, and Claude is told both at session start. OS-level key isolation is
+  not implemented ([ADR-0006](docs/adr/0006-stock-lookup-and-key-access.md), [ADR-0007](docs/adr/0007-ssh-info-in-status.md)).
 - A shell redirect into `~/.moni_pod` can forge the approval token. The native permission prompt still guards every
   spending call ([ADR-0002](docs/adr/0002-lock-mechanism.md)).
 - Pods only. Serverless endpoints and network volumes are not locked or tracked.

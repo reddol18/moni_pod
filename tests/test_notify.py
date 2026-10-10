@@ -43,11 +43,13 @@ def test_session_start_message_for_user_and_claude():
     assert "/moni-pod:gpu-status" in out["systemMessage"]
     ctx = out["hookSpecificOutput"]["additionalContext"]
     assert out["hookSpecificOutput"]["hookEventName"] == "SessionStart" and "Never stop, delete or start" in ctx
+    assert notify.ssh_hint() in ctx and "moni-pod status --json" in ctx  # issue 1
 
 
 def test_session_start_quiet_for_user_when_nothing_bills():
     out = notify.session_start({}, now=NOW, settings=Settings())
-    assert "systemMessage" not in out and out["hookSpecificOutput"]["additionalContext"] == notify.LOOKUP_CONTEXT
+    ctx = out["hookSpecificOutput"]["additionalContext"]
+    assert "systemMessage" not in out and ctx == notify.LOOKUP_CONTEXT + " " + notify.ssh_hint()
 
 
 def test_session_end_notifies_and_records(isolated_home):

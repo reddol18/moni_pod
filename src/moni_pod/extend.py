@@ -19,6 +19,7 @@ from .ledger import RUNNING, Ledger, parse_iso, to_iso, utcnow
 from .runpod_api import RunPodClient
 from .settings import Settings
 from .start import session_committed
+from .status import ssh_target
 
 
 class ExtendRefused(RuntimeError):
@@ -32,13 +33,6 @@ class ExtendResult:
     new_deadline: str
     added_sec: int
     extra_max_usd: float
-
-
-def ssh_target(pod: dict) -> tuple[str, int, str] | None:
-    direct = ((pod.get("ssh") or {}).get("direct")) or {}
-    if direct.get("host") and direct.get("port"):
-        return direct["host"], int(direct["port"]), direct.get("username") or "root"
-    return None
 
 
 WINDOWS_OPENSSH = r"C:\Windows\System32\OpenSSH\ssh.exe"
